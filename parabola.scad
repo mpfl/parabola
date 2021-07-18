@@ -12,7 +12,7 @@ phi = golden_ratio - 1;
 use <Naca_sweep.scad>
 use <faces.scad>
 
-outer_y_int = 245;
+outer_y_int = 200;
 outer_x_int = outer_y_int * phi;
 
 
