@@ -6,18 +6,21 @@ Uses Naca_sweep.scad and faces.scad
 
 */
 
+golden_ratio =  (1 + pow(5,0.5))/2;
+phi = golden_ratio - 1;
 
 use <Naca_sweep.scad>
 use <faces.scad>
 
-inner_x_int = 50;
-inner_y_int = 210;
+outer_y_int = 245;
+outer_x_int = outer_y_int * phi;
 
-outer_x_int = 110;
-outer_y_int = 240;
 
-order = 360;
-x_step = 0.1;
+inner_x_int = outer_x_int * phi;
+inner_y_int = outer_y_int-((outer_x_int-inner_x_int)*phi);
+
+order = 36;
+x_step = 1;
 
 inner_a = -(inner_y_int / pow(inner_x_int, 2));
 inner_c = inner_y_int;
@@ -36,37 +39,7 @@ module draw_arc() {
             mirror([1,0,0]) polyhedron(points = coords, faces = f);
         }
     translate([0,0,-outer_y_int])
-        cylinder(r = outer_x_int, h = outer_y_int);
-    }
-}
-
-module draw_half_old() {
-    for(x = [1 : 1 : inner_x_int + 1]) {
-        y = (inner_a * pow(x,2) + inner_c); // This is the Y of the left point of the slice;
-        m_inner = (2 * inner_a * x);
-        m_slice = (-1/m_inner);
-        slice_angle = (-atan(-1/(2 * inner_a * x))); // This is the angle of the slice at x;
-        c_slice = (y - (m_slice * x));
-
-        prime_a = (outer_a);
-        prime_b = (-m_slice);
-        prime_c = (outer_c - c_slice);
-        
-        prime_disc = (prime_b * prime_b - 4 * prime_a * prime_c);
-        
-        x_prime = (-prime_b - pow(prime_disc, 0.5)) / (2 * prime_a);
-        y_prime = (m_slice * x_prime + c_slice);
-
-        slice_centre_x = ((x + x_prime) / 2);
-        slice_centre_y = ((y + y_prime) / 2);
-
-        slice_centre = [slice_centre_x, 0, slice_centre_y];
-        slice_diameter = pow(pow((x_prime - x),2)+pow((y_prime - y),2),0.5);
-
-        //translate(slice_center) rotate([0,slice_angle,0]) cylinder(d = slice_diameter, height = 1);
-
-        draw_slice(c = slice_centre, a = slice_angle, d = slice_diameter);
-
+        cylinder(r = 1.5 * outer_x_int, h = outer_y_int);
     }
 }
 
@@ -87,9 +60,9 @@ function slice_radius(i_a, i_c, o_a, o_c, x) = slice_diameter(i_a, i_c, o_a, o_c
 function slice_coords(i_a, i_c, i_y, o_a, o_c, o_y, x, order) =
         x == 0
     ?
-        T( z = (o_y + i_y)/2, v = R(y = 90, v = vec3D(v = circle_coords(circle_angles(order), (o_y - i_y)/2))))
+        T( z = (o_y + i_y)/2, v = R(y = 90, v = S(y= 1 - phi, v = vec3D(v = circle_coords(circle_angles(order), (o_y - i_y)/2)))))
     :
-        T( x=slice_centre(inner_a, inner_c, outer_a, outer_c, x)[0], y = slice_centre(inner_a, inner_c, outer_a, outer_c, x)[1], z=slice_centre(inner_a, inner_c, outer_a, outer_c, x)[2], v =R(y = slice_angle(i_a, x), v = vec3D(v = circle_coords(circle_angles(order), slice_radius(inner_a, inner_c, outer_a, outer_c, x)))))
+        T( x=slice_centre(inner_a, inner_c, outer_a, outer_c, x)[0], y = slice_centre(inner_a, inner_c, outer_a, outer_c, x)[1], z=slice_centre(inner_a, inner_c, outer_a, outer_c, x)[2], v =R(y = slice_angle(i_a, x), v = S(y = 1 - (phi * sin(slice_angle(i_a, x))), v = vec3D(v = circle_coords(circle_angles(order), slice_radius(inner_a, inner_c, outer_a, outer_c, x))))))
     ;
 
 function half_arc_coords(i_a, i_c, i_x, i_y, o_a, o_c, o_x, o_y, order) = [ for (x = [0 : 1 : i_x + 1]) slice_coords(i_a, i_c, i_y, o_a, o_c, o_y, x, order)];
@@ -101,7 +74,3 @@ function half_arc_coords_r(i_a, i_c, i_x, i_y, o_a, o_c, o_x, o_y, start = 0, st
     :
         concat(slice_coords(i_a, i_c, i_y, o_a, o_c, o_y, start, order), half_arc_coords_r(i_a, i_c, i_x, i_y, o_a, o_c, o_x, o_y, start+step, step, order))
     ;
-
-module draw_slice(c, a, r) {
-    translate(c) rotate([0,a,0]) cylinder(r = r, h = 1);
-}
